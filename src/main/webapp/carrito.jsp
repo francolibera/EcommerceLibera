@@ -37,7 +37,7 @@
         <div id="navbarBasicExample" class="navbar-menu">
             <div class="navbar-start">
                 <a class="navbar-item">
-                    Ofertas del Día
+                    Ofertas del Dï¿½a
                 </a>
                 <div class="navbar-item">
                     <form action="Controller" method="GET">
@@ -120,7 +120,7 @@
                                         Mi perfil
                                     </a>
                                     <a class="navbar-item" onclick="openModalTarjeta()">
-									    Añadir Tarjeta
+									    Aï¿½adir Tarjeta
 									</a>
                                     <a class="navbar-item"  onclick="openModalAgregarSaldo()">
 									    Agregar Saldo
@@ -234,53 +234,13 @@
                             </div>
                         </div>
                         <footer class="card-footer">
-                           <button id="openPaymentModal" class="card-footer-item button is-info is-fullwidth">Comprar</button>
+                           <a href="Controller?accion=RealizarPago" class="card-footer-item button is-info is-fullwidth">Pagar con Mercado Pago</a>
                         </footer>
                     </div>
                 </div>
             </div>
         </div>
     </section>
-    
-	<div class="modal" id="paymentModal">
-        <div class="modal-background"></div>
-        <div class="modal-card">
-            <header class="modal-card-head">
-                <p class="modal-card-title">Confirmación de Pago</p>
-                <button class="delete" aria-label="close" id="closeModal"></button>
-            </header>
-            <section class="modal-card-body">
-                <form id="paymentForm" action="Controller?accion=RealizarPago" method="post" enctype="form-data">
-                    <div class="field">
-                        <label class="label">Nombre en la tarjeta</label>
-                        <div class="control">
-                            <input class="input" type="text" name="nombre" placeholder="Nombre completo" required>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">Número de la tarjeta</label>
-                        <div class="control">
-                            <input class="input" type="text" name="numero" placeholder="1234 5678 9101 1121" maxlength="19" required>
-                        </div>
-                    </div>
-                    <div class="field is-flex">
-                        <div class="control mr-2">
-                            <label class="label">Fecha de expiración</label>
-                            <input class="input" type="text" placeholder="MM/AA" name="fecha" maxlength="5" required>
-                        </div>
-                        <div class="control">
-                            <label class="label">CVV</label>
-                            <input class="input" type="text" name="cvv" placeholder="123" maxlength="3" required>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            <footer class="modal-card-foot">
-                <button type="submit" form="paymentForm" class="button is-success" name="accion" value="RealizarPago">Pagar ahora</button>
-                <button class="button" id="cancelPayment">Cancelar</button>
-            </footer>
-        </div>
-    </div>
 
 	<div class="modal" id="addTarjetaModal">
 	    <div class="modal-background"></div>
@@ -289,7 +249,7 @@
 		            <h3 class="title is-4">Agregar Nueva Tarjeta</h3>
 		            <form action="Controller?accion=GuardarTarjeta" method="post">
 		                <div class="field">
-                    <label class="label">Número de Tarjeta:</label>
+                    <label class="label">Nï¿½mero de Tarjeta:</label>
 	                    <div class="control">
 		                        <input class="input" type="text" name="numeroTarjeta" id="numeroTarjeta" required 
 		                               pattern="[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}" 
@@ -313,7 +273,7 @@
 		                <div class="field">
 		                    <label class="label">CVV:</label>
 		                    <div class="control">
-		                        <input class="input" type="text" name="cvvTarjeta" required pattern="\d{3,4}" title="3 o 4 dígitos">
+		                        <input class="input" type="text" name="cvvTarjeta" required pattern="\d{3,4}" title="3 o 4 dï¿½gitos">
 		                    </div>
 		                </div>
 		                <div class="field">
@@ -341,9 +301,9 @@
 		    <div class="modal-content">
 		        <div class="box">
 		            <h3 class="title is-4">Agregar Saldo</h3>
-		            <form id="agregarSaldoForm" action="Controller?accion=AñadirSaldo" method="post">
+		            <form id="agregarSaldoForm" action="Controller?accion=Aï¿½adirSaldo" method="post">
 		                <div class="field">
-		                    <label class="label">Número de Tarjeta:</label>
+		                    <label class="label">Nï¿½mero de Tarjeta:</label>
 		                    <div class="control">
 		                        <input class="input" type="text" name="numeroTarjeta" id="numeroTarjetaSaldo" required 
 		                               pattern="[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}" 
@@ -376,27 +336,13 @@
 	    <div class="modal-background"></div>
 	    <div class="modal-content">
 	        <div class="box">
-	            <h3 class="title is-4">Confirmación</h3>
+	            <h3 class="title is-4">Confirmaciï¿½n</h3>
 	            <p id="mensajeConfirmacion"></p>
 	            <button class="button is-success" onclick="closeConfirmacionModal()">Aceptar</button>
 	        </div>
 	    </div>
 	</div>
 
-    <script>
-        // Abrir el modal de pago
-        document.getElementById('openPaymentModal').addEventListener('click', () => {
-            document.getElementById('paymentModal').classList.add('is-active');
-        });
-
-        // Cerrar el modal
-        document.getElementById('closeModal').addEventListener('click', () => {
-            document.getElementById('paymentModal').classList.remove('is-active');
-        });
-        document.getElementById('cancelPayment').addEventListener('click', () => {
-            document.getElementById('paymentModal').classList.remove('is-active');
-        });
-    </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
@@ -494,7 +440,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
         e.preventDefault();
         if (this.checkValidity()) {
             var formData = new FormData(this);
-            fetch('Controller?accion=AñadirSaldo', {
+            fetch('Controller?accion=Aï¿½adirSaldo', {
                 method: 'POST',
                 body: formData
             })
@@ -505,7 +451,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Ocurrió un error al agregar el saldo');
+                alert('Ocurriï¿½ un error al agregar el saldo');
             });
         } else {
             alert('Por favor, complete todos los campos correctamente.');

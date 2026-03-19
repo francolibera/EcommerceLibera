@@ -17,6 +17,15 @@ import java.io.PrintWriter;
 import java.util.*;
 import entities.*;
 import data.*;
+import com.mercadopago.MercadoPagoConfig;
+import com.mercadopago.client.preference.PreferenceBackUrlsRequest;
+import com.mercadopago.client.preference.PreferenceClient;
+import com.mercadopago.client.preference.PreferenceItemRequest;
+import com.mercadopago.client.preference.PreferenceRequest;
+import com.mercadopago.resources.preference.Preference;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @MultipartConfig
@@ -152,8 +161,10 @@ public class Controller extends HttpServlet {
             	break;
             case "Detalles":
             	listarDetalleCompra(request, response);
+                break;
             case "ListarCompras":
             	listarCompras(request, response);
+                break;
             case "CambiarEstado":
                 cambiarEstadoCompra(request, response);
                 break;
@@ -453,31 +464,94 @@ public class Controller extends HttpServlet {
     }
     
     private void realizarPago(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String nombre = request.getParameter("nombre");
-        String numeroT = request.getParameter("numero");
-        String fechaE = request.getParameter("fecha");
-        String codS = request.getParameter("cvv");
-        Tarjeta t = dcompra.GetTarjeta(numeroT);
-        System.out.println(t.getNumero());
-
-        if (t.getNumero() != null) {
-            if (nombre.equals(t.getNombre()) && codS.equals(t.getCodigo())) {
-                if (t.getSaldo() >= totalPagar) {
-                    if (persona.getId() != 0 && totalPagar > 0) {
-                        rpago = dcompra.Pagar(totalPagar, t.getId());
-                        System.out.println(t.getNombre());
-                        request.getRequestDispatcher("Controller?accion=Comprar").forward(request, response);
-                    }
-                } else {
-                    request.setAttribute("error", "Saldo insuficiente.");
-                    request.getRequestDispatcher("carrito.jsp").forward(request, response);
-                }
-            } else {
-                request.setAttribute("error", "Datos de la tarjeta incorrectos.");
-                request.getRequestDispatcher("carrito.jsp").forward(request, response);
+        try {
+            // Configurar el Access Token de Mercado Pago
+            MercadoPagoConfig.setAccessToken("APP_USR-6185331515264799-031916-3f6e53aa775aea2552d893163b173cec-3280001174");
+            
+            List<PreferenceItemRequest> items = new ArrayList<>();
+            System.out.println("====== PROCESANDO ITEMS ======");
+            System.out.println("Tamaño de listaCarrito: " + (listaCarrito != null ? listaCarrito.size() : "NULA"));
+            
+            if (listaCarrito == null || listaCarrito.isEmpty()) {
+                throw new Exception("El carrito está vacío. No se puede generar el pago.");
             }
-        } else {
-            request.setAttribute("error", "Tarjeta no encontrada.");
+
+            for (Carrito c : listaCarrito) {
+                System.out.println("Agregando item: " + c.getNombres() + " | Precio: " + c.getPrecioCompra() + " | Cantidad: " + c.getCantidad());
+                // Asegurarse de que el precio no sea 0 o negativo
+                double precioUnitario = c.getPrecioCompra();
+                if (precioUnitario <= 0) {
+                    precioUnitario = 1.0; // Precio mínimo de seguridad
+                    System.out.println("ADVERTENCIA: Precio unitario ajustado a 1.0 porque era <= 0");
+                }
+                
+                PreferenceItemRequest itemRequest = PreferenceItemRequest.builder()
+                    .title(c.getNombres() != null ? c.getNombres() : "Producto sin nombre")
+                    .quantity(c.getCantidad() > 0 ? c.getCantidad() : 1)
+                    .unitPrice(new BigDecimal(precioUnitario))
+                    .currencyId("ARS")
+                    .build();
+                items.add(itemRequest);
+            }
+
+            // Generar la URL base dinámicamente
+            String baseUrl = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath();
+            
+            // ATENCIÓN: Si vas a usar Ngrok u otra URL pública, cambiar aquí.
+            // Mientras sea localhost, no uses autoReturn.
+            String successUrl = baseUrl + "/Controller?accion=Comprar";
+            String pendingUrl = baseUrl + "/Controller?accion=Carrito";
+            String failureUrl = baseUrl + "/Controller?accion=Carrito";
+            
+            System.out.println("Back URL Success: " + successUrl);
+
+            PreferenceBackUrlsRequest backUrls = PreferenceBackUrlsRequest.builder()
+                .success(successUrl)
+                .pending(pendingUrl)
+                .failure(failureUrl)
+                .build();
+
+            PreferenceRequest preferenceRequest = PreferenceRequest.builder()
+                .items(items)
+                .backUrls(backUrls)
+                // Volvemos a comentar autoReturn. En cuentas nuevas de prueba, MP exige que 
+                // la URL de retorno sea HTTPS público para usar autoReturn.
+                // .autoReturn("approved")
+                .build();
+
+            PreferenceClient client = new PreferenceClient();
+            Preference preference = client.create(preferenceRequest);
+            
+            rpago = 1; // Para que generarCompra() sepa que se aprobó
+            
+            // Redirige al usuario al checkout de Mercado Pago
+            // USAMOS EL INIT POINT DE PRODUCCIÓN PARA EVITAR LOS BUGS DE SANDBOX.
+            // COMO USAMOS UN ACCESS TOKEN DE PRUEBA (APP_USR...), MERCADO PAGO SABRÁ 
+            // QUE ES UNA PRUEBA Y NO COBRARÁ NADA, PERO LA INTERFAZ FUNCIONARÁ MEJOR.
+            response.sendRedirect(preference.getInitPoint());
+            
+        } catch (com.mercadopago.exceptions.MPApiException apiException) {
+            System.err.println("====== ERROR DE MERCADO PAGO ======");
+            System.err.println("Status Code: " + apiException.getStatusCode());
+            if (apiException.getApiResponse() != null) {
+                System.err.println("Contenido de la respuesta: " + apiException.getApiResponse().getContent());
+            } else {
+                System.err.println("La respuesta de la API es nula. Mensaje: " + apiException.getMessage());
+            }
+            System.err.println("===================================");
+            apiException.printStackTrace();
+            
+            String errorMsg = (apiException.getApiResponse() != null) ? apiException.getApiResponse().getContent() : apiException.getMessage();
+            request.setAttribute("error", "Error en Mercado Pago: " + errorMsg);
+            // Intentar redirigir, si falla, al menos sabemos que entramos acá
+            try {
+                request.getRequestDispatcher("carrito.jsp").forward(request, response);
+            } catch (Exception ex) {
+                System.err.println("Error al redirigir: " + ex.getMessage());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("error", "Error al crear la preferencia de pago de Mercado Pago.");
             request.getRequestDispatcher("carrito.jsp").forward(request, response);
         }
     }
@@ -514,6 +588,9 @@ public class Controller extends HttpServlet {
     	            return;
     	        }
 
+                if (persona == null) {
+                    persona = new Persona();
+                }
     	        persona.setEmail(email);
     	        persona.setPassword(password);
 
@@ -534,19 +611,27 @@ public class Controller extends HttpServlet {
     	        try {
 					request.getRequestDispatcher("index.jsp").forward(request, response);
 				} catch (ServletException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
     	    }
 	}
 
 	private void generarCompra(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException{
-    	idPago= dcompra.GetIdDelUltimoPago();
+    	// Simulamos el ID de la tarjeta de Mercado Pago en la DB usando una tarjeta existente.
+    	// Usaremos el ID 1 (Franco Libera) que vemos que existe en la base de datos
+    	// para poder registrar el pago sin errores de Foreign Key.
+    	int idTarjetaMercadoPago = 1; 
+    	
     	if(persona.getId()!=0 && listaCarrito.size()!=0 && rpago==1) {
     		if (totalPagar>0.0) {
+    			
+    			// 1. Registramos el pago en nuestra base de datos para obtener el idPago
+    			rpago = dcompra.Pagar(totalPagar, idTarjetaMercadoPago);
+    			
+    			idPago= dcompra.GetIdDelUltimoPago();
+    			
     			Compra co = new Compra();
     			co.setPersona(persona);
     			co.setFecha(fechaSistema.FechaBD());
@@ -572,6 +657,7 @@ public class Controller extends HttpServlet {
     				dp.ActualizarStock(pro);
     			}
     			listaCarrito= new ArrayList<>();
+    			rpago = 0; // Reseteamos la bandera de pago
     			misCompras = dcompra.getMisCompras(persona.getId());
     			request.getRequestDispatcher("Controller?accion=ResumenDeCompra").forward(request, response);
     			

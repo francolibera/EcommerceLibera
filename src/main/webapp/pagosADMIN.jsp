@@ -193,7 +193,7 @@
                     <thead>
                         <tr>
                             <th>ID Pago</th>
-                            <th>Numero de tarjeta</th>
+                            <th>ID Tarjeta</th>
                             <th>Nombre del titular de la tarjeta</th>
                             <th>Monto</th>
                         </tr>

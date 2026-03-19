@@ -101,7 +101,7 @@
                                     <a class="navbar-item" href="Controller?accion=ListarPersonas">
                                         Usuarios
                                     </a>
-                                    <a class="navbar-item" href="Controller?accion=ListarCompras">
+                                    <a class="navbar-item" href="Controller?accion=ListarMisCompras">
                                         Compras
                                     </a>
                                     <a class="navbar-item" href="Controller?accion=ListarPagos">
@@ -110,8 +110,7 @@
                                 	</div>
                                 </div>
                             <% } %>
-                            
-                            <!-- Dropdown para el usuario logueado -->
+                                                        
                             <div class="navbar-item has-dropdown is-hoverable">
                                 <a class="navbar-link">
                                     <i class="fas fa-user"></i> <%= user.getNombre() %>
