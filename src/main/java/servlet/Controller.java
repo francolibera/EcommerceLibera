@@ -13,6 +13,8 @@ import logic.Login;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.*;
 import entities.*;
@@ -466,13 +468,35 @@ public class Controller extends HttpServlet {
     private void realizarPago(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
             // Configurar el Access Token de Mercado Pago
-            // IMPORTANTE: Por seguridad, el token no debe estar escrito directamente en el código.
-            // Para pruebas locales, reemplaza "TU_ACCESS_TOKEN_AQUI" con tu token real ANTES de ejecutar,
-            // pero NO lo subas a GitHub con el token real puesto.
+            // El token se lee primero de las variables de entorno, y si no existe, de un archivo local .env
             String mpAccessToken = System.getenv("MP_ACCESS_TOKEN");
+            
+            if (mpAccessToken == null || mpAccessToken.isEmpty()) {
+                // Intento de leer de un archivo .env en la ruta local del proyecto
+                try {
+                    Properties props = new Properties();
+                    // Obtiene la ruta del entorno de ejecución (suele ser el directorio base de eclipse/tomcat)
+                    // Para mayor compatibilidad en tu entorno de desarrollo:
+                    String classPath = getServletContext().getRealPath("/WEB-INF/classes/");
+                    if (classPath != null) {
+                        java.io.File file = new java.io.File(classPath + "../../../.env");
+                        if(file.exists()){
+                            try(FileInputStream in = new FileInputStream(file)){
+                                props.load(in);
+                                mpAccessToken = props.getProperty("MP_ACCESS_TOKEN");
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("No se pudo leer el .env local: " + e.getMessage());
+                }
+            }
+            
+            // Fallback final si todo lo demás falla (esto lanzará un error 401 en MP si se llega a ejecutar)
             if (mpAccessToken == null || mpAccessToken.isEmpty()) {
                 mpAccessToken = "TU_ACCESS_TOKEN_AQUI"; 
             }
+            
             MercadoPagoConfig.setAccessToken(mpAccessToken);
             
             List<PreferenceItemRequest> items = new ArrayList<>();
