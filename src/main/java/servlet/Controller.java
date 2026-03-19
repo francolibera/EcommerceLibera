@@ -466,7 +466,14 @@ public class Controller extends HttpServlet {
     private void realizarPago(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try {
             // Configurar el Access Token de Mercado Pago
-            MercadoPagoConfig.setAccessToken("APP_USR-6185331515264799-031916-3f6e53aa775aea2552d893163b173cec-3280001174");
+            // IMPORTANTE: Por seguridad, el token no debe estar escrito directamente en el código.
+            // Para pruebas locales, reemplaza "TU_ACCESS_TOKEN_AQUI" con tu token real ANTES de ejecutar,
+            // pero NO lo subas a GitHub con el token real puesto.
+            String mpAccessToken = System.getenv("MP_ACCESS_TOKEN");
+            if (mpAccessToken == null || mpAccessToken.isEmpty()) {
+                mpAccessToken = "TU_ACCESS_TOKEN_AQUI"; 
+            }
+            MercadoPagoConfig.setAccessToken(mpAccessToken);
             
             List<PreferenceItemRequest> items = new ArrayList<>();
             System.out.println("====== PROCESANDO ITEMS ======");
